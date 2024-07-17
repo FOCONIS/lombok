@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2022 The Project Lombok Authors.
+ * Copyright (C) 2013-2024 The Project Lombok Authors.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -118,6 +118,7 @@ public class HandlerUtil {
 			"org.eclipse.jdt.annotation.NonNull",
 			"org.jetbrains.annotations.NotNull",
 			"org.jmlspecs.annotation.NonNull",
+			"org.jspecify.annotations.NonNull",
 			"org.netbeans.api.annotations.common.NonNull",
 			"org.springframework.lang.NonNull",
 			"reactor.util.annotation.NonNull",
@@ -194,8 +195,8 @@ public class HandlerUtil {
 			"org.jetbrains.annotations.UnknownNullability",
 			"org.jmlspecs.annotation.NonNull",
 			"org.jmlspecs.annotation.Nullable",
-			"org.jspecify.nullness.Nullable",
-			"org.jspecify.nullness.NullnessUnspecified",
+			"org.jspecify.annotations.Nullable",
+			"org.jspecify.annotations.NonNull",
 			"org.netbeans.api.annotations.common.CheckForNull",
 			"org.netbeans.api.annotations.common.NonNull",
 			"org.netbeans.api.annotations.common.NullAllowed",
@@ -918,9 +919,13 @@ public class HandlerUtil {
 		}
 	}
 	
-	public static String stripLinesWithTagFromJavadoc(String javadoc, JavadocTag tag) {
+	public static String stripLinesWithTagFromJavadoc(String javadoc, JavadocTag... tags) {
 		if (javadoc == null || javadoc.isEmpty()) return javadoc;
-		return tag.pattern.matcher(javadoc).replaceAll("").trim();
+		String result = javadoc;
+		for (JavadocTag tag : tags) {
+			result = tag.pattern.matcher(result).replaceAll("").trim();
+		}
+		return result;
 	}
 	
 	public static String stripSectionsFromJavadoc(String javadoc) {
@@ -976,13 +981,13 @@ public class HandlerUtil {
 	
 	public static String addJavadocLine(String in, String line) {
 		if (in == null) return line;
-		if (in.endsWith("\n")) return in + line + "\n";
+		if (in.endsWith("\n")) return in + line;
 		return in + "\n" + line;
 	}
 
 	public static String getParamJavadoc(String methodComment, String param) {
 		if (methodComment == null || methodComment.isEmpty()) return methodComment;
-		Pattern pattern = Pattern.compile("@param " + param + " (\\S|\\s)+?(?=^ ?@)", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+		Pattern pattern = Pattern.compile("@param " + param + " (\\S|\\s)+?(?=^ ?@|\\z)", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
 		Matcher matcher = pattern.matcher(methodComment);
 		if (matcher.find()) {
 			return matcher.group();
@@ -997,5 +1002,24 @@ public class HandlerUtil {
 	 */
 	public static List<String> nonNullAnnotations(Boolean useForeignAnnotations) {
 		return Boolean.FALSE.equals(useForeignAnnotations) ? LOMBOK_NONNULL_ANNOTATIONS : NONNULL_ANNOTATIONS;
+	}
+	
+	public static String getConstructorJavadocHeader(String typeName) {
+		return "Creates a new {@code " + typeName + "} instance.\n\n";
+	}
+	
+	public static String getConstructorParameterJavadoc(String paramName, String fieldJavadoc) {
+		String fieldBaseJavadoc = stripSectionsFromJavadoc(fieldJavadoc);
+		
+		String paramJavadoc = getParamJavadoc(fieldBaseJavadoc, paramName);
+		if (paramJavadoc != null) {
+			return paramJavadoc;
+		}
+		
+		String javadocWithoutTags = stripLinesWithTagFromJavadoc(fieldBaseJavadoc, JavadocTag.PARAM, JavadocTag.RETURN);
+		if (javadocWithoutTags != null) {
+			return "@param " + paramName + " " + javadocWithoutTags;
+		}
+		return null;
 	}
 }
