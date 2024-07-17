@@ -165,6 +165,7 @@ This buildfile is part of projectlombok.org. It takes care of compiling and runn
 			<classpath location="build/tests" />
 			<classpath location="build/teststubs" />
 			<test name="lombok.TestJavac" />
+			<!--<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y"/>-->
 		</junit>
 	</target>
 	
