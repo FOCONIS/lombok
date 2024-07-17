@@ -8,6 +8,7 @@ class NonNullJavaxPlain {
 	String s;
 
 	@java.lang.SuppressWarnings("all")
+	@lombok.Generated
 	public NonNullJavaxPlain(@javax.annotation.Nonnull final int i, @javax.annotation.Nonnull final String s) {
 		if (s == null) {
 			throw new java.lang.NullPointerException("s is marked non-null but is null");
@@ -18,22 +19,26 @@ class NonNullJavaxPlain {
 
 	@javax.annotation.Nonnull
 	@java.lang.SuppressWarnings("all")
+	@lombok.Generated
 	public int getI() {
 		return this.i;
 	}
 
 	@javax.annotation.Nonnull
 	@java.lang.SuppressWarnings("all")
+	@lombok.Generated
 	public String getS() {
 		return this.s;
 	}
 
 	@java.lang.SuppressWarnings("all")
+	@lombok.Generated
 	public void setI(@javax.annotation.Nonnull final int i) {
 		this.i = i;
 	}
 
 	@java.lang.SuppressWarnings("all")
+	@lombok.Generated
 	public void setS(@javax.annotation.Nonnull final String s) {
 		if (s == null) {
 			throw new java.lang.NullPointerException("s is marked non-null but is null");
