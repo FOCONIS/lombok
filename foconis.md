@@ -5,6 +5,7 @@ Foconis Release Info
 - Merge back upstream master
 - Fix merge conflicts
 - set version in `lombok.core.Version` to `xx-FOC1`
+- run `ant dist`
 - run `ant test`
 - fix tests if necessary
 - run `ant maven.publish`
