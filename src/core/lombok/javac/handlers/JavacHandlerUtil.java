@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2022 The Project Lombok Authors.
+ * Copyright (C) 2009-2025 The Project Lombok Authors.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.sun.source.tree.TreeVisitor;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.BoundKind;
 import com.sun.tools.javac.code.Flags;
@@ -75,6 +76,7 @@ import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.tree.JCTree.JCWildcard;
 import com.sun.tools.javac.tree.JCTree.TypeBoundKind;
+import com.sun.tools.javac.tree.TreeCopier;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.Context;
@@ -590,38 +592,42 @@ public class JavacHandlerUtil {
 		
 		private static final Field astField;
 		private static final Field originalAnnos;
-		private static final Method findRecordComponentToRemove;
+		private static final Method getRecordComponents = Permit.permissiveGetMethod(ClassSymbol.class, "getRecordComponents");
 		
 		static {
 			Field a = null;
 			Field o = null;
-			Method m = null;
 			try {
 				Class<?> forName = Class.forName("com.sun.tools.javac.code.Symbol$RecordComponent");
 				a = Permit.permissiveGetField(forName, "ast");
 				o = Permit.permissiveGetField(forName, "originalAnnos");
-				m = Permit.permissiveGetMethod(ClassSymbol.class, "findRecordComponentToRemove", JCVariableDecl.class);
 			} catch (Throwable e) {
 				// Ignore
 			}
 			astField = a;
 			originalAnnos = o;
-			findRecordComponentToRemove = m;
 		}
 		
 		static void deleteAnnotation(JCClassDecl record, JCVariableDecl component, JCTree annotation) {
-			if ((astField == null && originalAnnos == null) || findRecordComponentToRemove == null) return;
+			if ((astField == null && originalAnnos == null) || getRecordComponents == null) return;
 			
 			try {
-				Object toRemove = Permit.invokeSneaky(findRecordComponentToRemove, record.sym, component);
-				if (astField != null) {
-					// OpenJDK
-					JCVariableDecl variable = Permit.get(astField, toRemove);
-					variable.mods.annotations =  filterListByPos(variable.mods.annotations, annotation);
-				} else {
-					// Zulu JDK 17
-					List<JCAnnotation> annotations = Permit.get(originalAnnos, toRemove);
-					Permit.set(originalAnnos, toRemove, filterListByPos(annotations, annotation));
+				List<?> recordComponents = (List<?>) Permit.invokeSneaky(getRecordComponents, record.sym);
+				
+				for (Object recordComponent : recordComponents) {
+					Name recordComponentName = ((Symbol) recordComponent).name;
+					if (!recordComponentName.equals(component.name)) continue;
+					
+					if (astField != null) {
+						// OpenJDK
+						JCVariableDecl variable = Permit.get(astField, recordComponent);
+						variable.mods.annotations =  filterListByPos(variable.mods.annotations, annotation);
+					} else {
+						// Zulu JDK 17
+						List<JCAnnotation> annotations = Permit.get(originalAnnos, recordComponent);
+						Permit.set(originalAnnos, recordComponent, filterListByPos(annotations, annotation));
+					}
+					return;
 				}
 			} catch (Throwable e) {
 				// Ignore
@@ -1751,7 +1757,8 @@ public class JavacHandlerUtil {
 				}
 			}
 		}
-		return copyAnnotations(result.toList());
+
+		return copyAnnotations(result.toList(), node.getTreeMaker());
 	}
 	
 	/**
@@ -1789,7 +1796,7 @@ public class JavacHandlerUtil {
 		if (annoName == null) return List.nil();
 		
 		if (!annoName.isEmpty()) {
-			for (String bn : annotationsToFind) if (typeMatches(bn, node, annoName)) return List.of(anno);
+			for (String bn : annotationsToFind) if (typeMatches(bn, node, annoName)) return copyAnnotations(List.of(anno), node.getTreeMaker());
 		}
 		
 		ListBuffer<JCAnnotation> result = new ListBuffer<JCAnnotation>();
@@ -1804,7 +1811,7 @@ public class JavacHandlerUtil {
 				}
 			}
 		}
-		return copyAnnotations(result.toList());
+		return copyAnnotations(result.toList(), node.getTreeMaker());
 	}
 	
 	/**
@@ -2113,13 +2120,19 @@ public class JavacHandlerUtil {
 		errorNode.addError(out.append(" are not allowed on builder classes.").toString());
 	}
 	
-	static List<JCAnnotation> copyAnnotations(List<? extends JCExpression> in) {
+	static List<JCAnnotation> copyAnnotations(List<? extends JCExpression> in, JavacTreeMaker maker) {
 		ListBuffer<JCAnnotation> out = new ListBuffer<JCAnnotation>();
 		for (JCExpression expr : in) {
 			if (!(expr instanceof JCAnnotation)) continue;
-			out.append((JCAnnotation) expr.clone());
+			out.append(copyExpression((JCAnnotation) expr, maker));
 		}
 		return out.toList();
+	}
+	
+	@SuppressWarnings("unchecked")
+	static <T extends JCExpression> T copyExpression(T expression, JavacTreeMaker maker) {
+		TreeVisitor<JCTree, Void> visitor = new TreeCopier<Void>(maker.getUnderlyingTreeMaker());
+		return (T) expression.accept(visitor, null);
 	}
 	
 	static List<JCAnnotation> mergeAnnotations(List<JCAnnotation> a, List<JCAnnotation> b) {
@@ -2271,7 +2284,7 @@ public class JavacHandlerUtil {
 		
 		if (JCAnnotatedTypeReflect.is(in)) {
 			JCExpression underlyingType = cloneType0(maker, JCAnnotatedTypeReflect.getUnderlyingType(in));
-			List<JCAnnotation> anns = copyAnnotations(JCAnnotatedTypeReflect.getAnnotations(in));
+			List<JCAnnotation> anns = copyAnnotations(JCAnnotatedTypeReflect.getAnnotations(in), maker);
 			return JCAnnotatedTypeReflect.create(anns, underlyingType);
 		}
 		
