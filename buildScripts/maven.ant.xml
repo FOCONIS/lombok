@@ -50,7 +50,7 @@ This buildfile is part of projectlombok.org. It makes maven-compatible repositor
 				<fileset dir="test/core/src" />
 			</jar>
 			
-			<copy tofile="build/pom.xml" overwrite="true" file="doc/maven-pom.xml">
+			<copy tofile="build/lombok-@{version-name}.pom" overwrite="true" file="doc/maven-pom.xml">
 				<filterchain>
 					<replacetokens>
 						<token key="VERSION" value="@{version-name}" />
@@ -69,16 +69,16 @@ This buildfile is part of projectlombok.org. It makes maven-compatible repositor
 	
 	<target name="maven.publish" depends="maven">
 
-		
 		<delete quiet="true" dir="build/maven-publish" />
-		<mkdir dir="build/maven-publish" />
-		<copy todir="build/maven-publish">
+		<property name="maven.publish.projdir" location="build/maven-publish/org/projectlombok/lombok/${lombok.version}" />
+		<mkdir dir="${maven.publish.projdir}" />
+		<copy todir="${maven.publish.projdir}">
 			<fileset dir="dist">
 				<include name="lombok-${lombok.version}.jar" />
 				<include name="lombok-${lombok.version}-sources.jar" />
 				<include name="lombok-${lombok.version}-javadoc.jar" />
 			</fileset>
-			<fileset dir="build" includes="pom.xml" />
+			<fileset dir="build" includes="lombok-${lombok.version}.pom" />
 		</copy>
 
 		<jar destfile="build/maven-publish/lombok-bundle.jar">
