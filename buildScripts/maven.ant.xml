@@ -67,19 +67,7 @@ This buildfile is part of projectlombok.org. It makes maven-compatible repositor
 		<maven.make version-name="${lombok.version}" />
 	</target>
 	
-	<target name="maven.publish" depends="maven, -setup.mavenCentral">
-		<fail>
-			Your lombok clone does not include the central.sonatype.org deployment keys. Contact the core maintainers for these keys;
-			place them in ${gpg.keyrings} to continue.
-			
-			<condition>
-				<not><available file="${gpg.keyrings}" /></not>
-			</condition>
-		</fail>
-		
-		<fail unless="mavencentral.authToken">
-			Your lombok clone does not include an central.sonatype.org authToken, needed to upload and deploy to maven central. Contact the core maintainers.
-		</fail>
+	<target name="maven.publish" depends="maven">
 		
 		<delete quiet="true" dir="build/maven-publish" />
 		<property name="maven.publish.projdir" location="build/maven-publish/org/projectlombok/lombok/${lombok.version}" />
@@ -92,50 +80,17 @@ This buildfile is part of projectlombok.org. It makes maven-compatible repositor
 			</fileset>
 			<fileset dir="build" includes="lombok-${lombok.version}.pom" />
 		</copy>
-		
-		<apply executable="${exe.gpg}" failifexecutionfails="false" resultproperty="gpg.result">
-			<arg value="-ab" />
-			<arg value="--batch" />
-			<arg value="--yes" />
-			<arg value="--homedir" />
-			<arg value="${gpg.keyrings}" />
-			<fileset dir="${maven.publish.projdir}" />
-		</apply>
-		
-		<fail>
-			gpg (Gnu Privacy Guard) is not on your path, or ant property exe.gpg is not properly set. Install gpg/add it to your PATH. Alternatively, run with ant -Dexe.gpg=/loc/to/gpg to continue.
-			<condition>
-				<not><isset property="gpg.result" /></not>
-			</condition>
-		</fail>
-		
-		<checksum algorithm="SHA-1" fileext=".sha1">
-			<fileset dir="${maven.publish.projdir}">
-				<include name="*.jar" />
-				<include name="*.pom" />
-			</fileset>
-		</checksum>
-		
-		<checksum algorithm="MD5" fileext=".md5">
-			<fileset dir="${maven.publish.projdir}">
-				<include name="*.jar" />
-				<include name="*.pom" />
-			</fileset>
-		</checksum>
-		
-		<property name="maven.publish.bundlezip" location="build/maven-publish/lombok-maven-deploy-bundle-${lombok.version}.zip" />
-		<zip destfile="${maven.publish.bundlezip}">
+		<jar destfile="build/maven-publish/lombok-bundle.jar">
 			<fileset dir="build/maven-publish" />
-		</zip>
-		
-		<echo>An artifact ready to upload to central.sonatype.com is available at: ${maven.publish.bundlezip}</echo>
+		</jar>
+		<echo>The artifact has been published to staging. Now go to https://oss.sonatype.org/ and log in as Reinier, then doublecheck if all is well and 'release' it.</echo>
 	</target>
 	
 	<target name="maven.edge" depends="version, dist, javadoc.build" description="Create a maven repo for the current snapshot into a build dir. The intent is for you to put that on a server someplace. Will invoke your local mvn installation.">
 		<delete quiet="true" dir="build/edge-releases" />
 		<mkdir dir="build/edge-releases" />
 		
-		<maven.make version-name="edge-SNAPSHOT" />
+		<maven.make version-name="${lombok.version}" />
 		
 		<local name="mvn.result" />
 		<exec executable="${exe.mvn}" failifexecutionfails="false" resultproperty="mvn.result">
