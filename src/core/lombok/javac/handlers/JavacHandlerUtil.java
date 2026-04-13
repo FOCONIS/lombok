@@ -1720,8 +1720,7 @@ public class JavacHandlerUtil {
 		for (JavacNode child : node.down()) {
 			if (child.getKind() == Kind.ANNOTATION) {
 				JCAnnotation annotation = (JCAnnotation) child.get();
-				String annotationTypeName = getTypeName(annotation.annotationType);
-				for (String nn : NONNULL_ANNOTATIONS) if (typeMatches(nn, node, annotationTypeName)) return true;
+				if (isNonNullAnnotation(node, annotation)) return true;
 			}
 		}
 		
@@ -1731,13 +1730,11 @@ public class JavacHandlerUtil {
 	public static boolean hasNonNullAnnotations(JavacNode node, List<JCAnnotation> anns) {
 		if (anns == null) return false;
 		for (JCAnnotation ann : anns) {
-			String annotationTypeName = getTypeName(ann.annotationType);
-			for (String nn : NONNULL_ANNOTATIONS) if (typeMatches(nn, node, annotationTypeName)) return true;
+			if (isNonNullAnnotation(node, ann)) return true;
 		}
 		
 		return false;
 	}
-	
 	public static boolean hasCheckReturnValueImplicatingAnnotations(JavacNode node, List<JCAnnotation> anns) {
 		if (anns == null) return false;
 		for (JCAnnotation ann : anns) {
@@ -1748,6 +1745,13 @@ public class JavacHandlerUtil {
 		return false;
 	}
 	
+	public static boolean isNonNullAnnotation(JavacNode node, JCAnnotation annotation) {
+		String annotationTypeName = getTypeName(annotation.annotationType);
+		Boolean useForeignAnnotations = node.getAst().readConfiguration(ConfigurationKeys.NON_NULL_FOREIGN_ANNOTATIONS);
+		for (String nn : nonNullAnnotations(useForeignAnnotations)) if (typeMatches(nn, node, annotationTypeName)) return true;
+		return false;
+	}
+
 	/**
 	 * Searches the given field node for annotations and returns each one that is 'copyable' (either via configuration or from the base list).
 	 */

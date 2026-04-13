@@ -219,9 +219,17 @@ public class HandlerLibrary {
 		TypeResolver resolver = new TypeResolver(annotationNode.getImportList());
 		TypeReference rawType = annotation.type;
 		if (rawType == null) return Long.MAX_VALUE;
-		
+
 		String fqn = resolver.typeRefToFullyQualifiedName(annotationNode, typeLibrary, toQualifiedName(annotation.type.getTypeName()));
-		if (fqn == null) return Long.MAX_VALUE;
+		if (fqn == null) {
+			// We have found an unknown annotation, so check, if this could be an alternative nonNull annotation
+			// and treat it like lombok.NonNull
+			if (isNonNullAnnotation(annotationNode, annotation)) {
+				fqn = lombok.NonNull.class.getName();
+			} else {
+				return Long.MAX_VALUE;
+			}
+		}
 		AnnotationHandlerContainer<?> container = annotationHandlers.get(fqn);
 		if (container == null) return Long.MAX_VALUE;
 		

@@ -84,6 +84,7 @@ public class HandlerUtil {
 	}
 	
 	public static final List<String> NONNULL_ANNOTATIONS, BASE_COPYABLE_ANNOTATIONS, JACKSON_COPY_TO_GETTER_ANNOTATIONS, JACKSON_COPY_TO_SETTER_ANNOTATIONS, JACKSON_COPY_TO_BUILDER_SINGULAR_SETTER_ANNOTATIONS, JACKSON_COPY_TO_BUILDER_ANNOTATIONS, IMPLIES_CHECK_RETURN_VALUE_ANNOTATIONS;
+	private static final List<String> LOMBOK_NONNULL_ANNOTATIONS;
 	static {
 		// This is a list of annotations with a __highly specific meaning__: All annotations in this list indicate that passing null for the relevant item is __never__ acceptable, regardless of settings or circumstance.
 		// In other words, things like 'this models a database table, and the db table column has a nonnull constraint', or 'this represents a web form, and if this is null, the form is invalid' __do not count__ and should not be in this list;
@@ -124,7 +125,13 @@ public class HandlerUtil {
 			"org.springframework.lang.NonNull",
 			"reactor.util.annotation.NonNull",
 		}));
-		
+
+		// by default, for non-null checks, the NONNULL_ANNOTATION list is checked. If foreign non null annotations are disabled, this list is used,
+		// which usually contains only the lombok.NonNull annotation
+		LOMBOK_NONNULL_ANNOTATIONS = Collections.unmodifiableList(Arrays.asList(new String[] {
+			"lombok.NonNull",
+		}));
+
 		// This is a list of annotations that lombok will automatically 'copy' - be it to the method (when generating a getter for a field annotated with one of these), or to a parameter (generating a setter, with-er, or builder 'setter').
 		// You can't disable this behaviour, so the list should only contain annotations where 'copy it!' is the desired behaviour in at least 95%, preferably 98%, of all non-buggy usages.
 		// As a general rule, lombok takes on maintenance of adding all nullity-related annotations here, _if_ they fit the definition of language-level nullity as per {@see #NONNULL_ANNOTATIONS}. As a consequence, everything from the NONNULL list should probably
@@ -1036,19 +1043,27 @@ public class HandlerUtil {
 		}
 		return null;
 	}
-	
+	/**
+	 * Determines the list of non-null annotations that should be used.
+	 * @param useForeignAnnotations If false, only lombok.NonNull is treated as non-null.
+	 * @return The configured list of non-null annotations.
+	 */
+	public static List<String> nonNullAnnotations(Boolean useForeignAnnotations) {
+		return Boolean.FALSE.equals(useForeignAnnotations) ? LOMBOK_NONNULL_ANNOTATIONS : NONNULL_ANNOTATIONS;
+	}
+
 	public static String getConstructorJavadocHeader(String typeName) {
 		return "Creates a new {@code " + typeName + "} instance.\n\n";
 	}
-	
+
 	public static String getConstructorParameterJavadoc(String paramName, String fieldJavadoc) {
 		String fieldBaseJavadoc = stripSectionsFromJavadoc(fieldJavadoc);
-		
+
 		String paramJavadoc = getParamJavadoc(fieldBaseJavadoc, paramName);
 		if (paramJavadoc != null) {
 			return paramJavadoc;
 		}
-		
+
 		String javadocWithoutTags = stripLinesWithTagFromJavadoc(fieldBaseJavadoc, JavadocTag.PARAM, JavadocTag.RETURN);
 		if (javadocWithoutTags != null) {
 			return "@param " + paramName + " " + javadocWithoutTags;
