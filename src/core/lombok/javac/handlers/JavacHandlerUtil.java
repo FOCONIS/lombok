@@ -1724,6 +1724,11 @@ public class JavacHandlerUtil {
 			}
 		}
 		
+		if (node.get() instanceof JCVariableDecl) {
+			JCVariableDecl variableDecl = (JCVariableDecl) node.get();
+			if (hasNonNullAnnotations(node, getTypeUseAnnotations(variableDecl.vartype))) return true;
+		}
+		
 		return false;
 	}
 	
