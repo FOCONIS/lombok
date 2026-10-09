@@ -3,7 +3,7 @@ import org.jspecify.annotations.NonNull;
 @Data class DataWithJspecifyTypeUseNonNull {
   private @NonNull String prop1;
   private java.lang.@NonNull String prop2;
-  public @java.lang.SuppressWarnings("all") @lombok.Generated @NonNull String getProp1() {
+  public @NonNull @java.lang.SuppressWarnings("all") @lombok.Generated String getProp1() {
     return this.prop1;
   }
   public @java.lang.SuppressWarnings("all") @lombok.Generated java.lang.@NonNull String getProp2() {

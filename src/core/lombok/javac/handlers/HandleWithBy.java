@@ -332,7 +332,7 @@ public class HandleWithBy extends JavacAnnotationHandler<WithBy> {
 		boolean makeFinal = shouldMakeFinal(field, accessors);
 		if (makeFinal) access |= Flags.FINAL;
 		createRelevantNonNullAnnotation(source, param);
-		JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(access, annsOnMethod), methodName, returnType,
+		JCMethodDecl decl = recursiveSetGeneratedBy(maker.MethodDef(maker.Modifiers(access | Javac.GENERATED_MEMBER, annsOnMethod), methodName, returnType,
 			methodGenericParams, parameters, throwsClauses, methodBody, annotationMethodDefaultValue), source);
 		addCheckReturnValue(decl.mods, field, source);
 		copyJavadoc(field, decl, CopyJavadoc.WITH_BY);
