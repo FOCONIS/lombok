@@ -262,8 +262,6 @@ public class HandleNonNull extends JavacAnnotationHandler<NonNull> {
 			return;
 		}
 		
-		if (hasAnnotation("lombok.Generated", node.up())) return;
-
 		if (declaration.body == null) {
 			// This used to be a warning, but as @NonNull also has a documentary purpose, better to not warn about this. Since 1.16.7
 			return;
