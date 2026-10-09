@@ -1,6 +1,5 @@
 //version 8:
 //CONF: lombok.addNullAnnotations=checkerframework
-//CONF: lombok.nonNull.useForeignAnnotations=false
 import java.util.List;
 @lombok.RequiredArgsConstructor
 public class WithByNullAnnos {
