@@ -1,4 +1,5 @@
 //version 8:
+//CONF: lombok.nonNull.useForeignAnnotations=false
 import java.util.List;
 public class WithByNullAnnos {
 	final List<String> test;
