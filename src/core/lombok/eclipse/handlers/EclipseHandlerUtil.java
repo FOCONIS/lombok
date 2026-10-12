@@ -779,21 +779,26 @@ public class EclipseHandlerUtil {
 		}
 		if (node.get() instanceof AbstractVariableDeclaration) {
 			AbstractVariableDeclaration variable = (AbstractVariableDeclaration) node.get();
-			Annotation[] typeUseAnns = getTypeUseAnnotations(variable.type);
+			Annotation[] typeUseAnns = variable.type.dimensions() > 0 ?
+				EclipseAST.getTopLevelTypeReferenceAnnotations(variable.type) : getTypeUseAnnotations(variable.type);
 			if (typeUseAnns != null && hasNonNullAnnotations(node, Arrays.asList(typeUseAnns))) return true;
 		}
 		return false;
 	}
-	
+
+	/** Whether a TYPE_USE-only annotation marks the value rather than an array element. */
+	public static boolean isTypeUseAnnotationOnValue(EclipseNode node, Annotation annotation) {
+		if (!(node.get() instanceof AbstractVariableDeclaration)) return true;
+		TypeReference type = ((AbstractVariableDeclaration) node.get()).type;
+		if (type == null || type.dimensions() == 0) return true;
+		Annotation[] anns = EclipseAST.getTopLevelTypeReferenceAnnotations(type);
+		if (anns != null) for (Annotation ann : anns) if (ann == annotation) return true;
+		return false;
+	}
+
 	public static boolean hasNonNullAnnotations(EclipseNode node, List<Annotation> anns) {
 		if (anns == null) return false;
-		for (Annotation annotation : anns) {
-			TypeReference typeRef = annotation.type;
-			if (typeRef != null && typeRef.getTypeName() != null) {
-				Boolean useForeignAnnotations = node.getAst().readConfiguration(ConfigurationKeys.NON_NULL_FOREIGN_ANNOTATIONS);
-				for (String bn : nonNullAnnotations(useForeignAnnotations)) if (typeMatches(bn, node, typeRef)) return true;
-			}
-		}
+		for (Annotation annotation : anns) if (isNonNullAnnotation(node, annotation)) return true;
 		return false;
 	}
 	public static boolean hasCheckReturnValueImplicatingAnnotations(EclipseNode node, Annotation[] anns) {
@@ -809,7 +814,11 @@ public class EclipseHandlerUtil {
 	
 	public static boolean isNonNullAnnotation(EclipseNode node, Annotation annotation) {
 		Boolean useForeignAnnotations = node.getAst().readConfiguration(ConfigurationKeys.NON_NULL_FOREIGN_ANNOTATIONS);
-		for (String bn : nonNullAnnotations(useForeignAnnotations)) if (typeMatches(bn, node, annotation.type)) return true;
+		for (String bn : nonNullAnnotations(useForeignAnnotations)) {
+			if (typeMatches(bn, node, annotation.type)) {
+				if (isTypeUseAnnotationOnValue(node, annotation) || !TYPE_USE_ONLY_ANNOTATIONS.contains(bn)) return true;
+			}
+		}
 		return false;
 	}
 

@@ -233,7 +233,7 @@ public class HandleNonNull extends EclipseAnnotationHandler<NonNull> {
 				node = annotationNode.up();
 			}
 			
-			if (node.getKind() == Kind.FIELD) {
+			if (node.getKind() == Kind.FIELD && isTypeUseAnnotationOnValue(node, ast)) {
 				//Check if this is a record and we need to generate the compact form constructor.
 				EclipseNode typeNode = node.up();
 				if (typeNode.getKind() == Kind.TYPE) {
@@ -270,6 +270,8 @@ public class HandleNonNull extends EclipseAnnotationHandler<NonNull> {
 			node = annotationNode.up();
 		}
 		
+		if (!isTypeUseAnnotationOnValue(node, ast)) return;
+
 		if (node.getKind() == Kind.FIELD) {
 			// This is meaningless unless the field is used to generate a method (@Setter, @RequiredArgsConstructor, etc),
 			// but in that case those handlers will take care of it. However, we DO check if the annotation is applied to

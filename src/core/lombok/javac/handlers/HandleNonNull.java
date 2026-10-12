@@ -51,6 +51,7 @@ import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.tree.JCTree.JCSynchronized;
 import com.sun.tools.javac.tree.JCTree.JCThrow;
 import com.sun.tools.javac.tree.JCTree.JCTry;
+import com.sun.tools.javac.tree.JCTree.JCTypeApply;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.util.List;
@@ -218,12 +219,15 @@ public class HandleNonNull extends JavacAnnotationHandler<NonNull> {
 	@Override public void handle(AnnotationValues<NonNull> annotation, JCAnnotation ast, JavacNode annotationNode) {
 		handleFlagUsage(annotationNode, ConfigurationKeys.NON_NULL_FLAG_USAGE, "@NonNull");
 		
-		final JavacNode node;
+		JavacNode node;
 		if (annotationNode.up().getKind() == Kind.TYPE_USE) {
 			node = annotationNode.directUp().directUp();
+			if (node.getKind() == Kind.TYPE_USE && node.get() instanceof JCTypeApply) node = node.directUp();
 		} else {
 			node = annotationNode.up();
 		}
+		
+		if (!isTypeUseAnnotationOnValue(node, ast)) return;
 		
 		if (node.getKind() == Kind.FIELD) {
 			// This is meaningless unless the field is used to generate a method (@Setter, @RequiredArgsConstructor, etc),

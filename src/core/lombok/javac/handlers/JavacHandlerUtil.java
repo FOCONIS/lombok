@@ -1723,15 +1723,22 @@ public class JavacHandlerUtil {
 				if (isNonNullAnnotation(node, annotation)) return true;
 			}
 		}
-		
+
 		if (node.get() instanceof JCVariableDecl) {
 			JCVariableDecl variableDecl = (JCVariableDecl) node.get();
 			if (hasNonNullAnnotations(node, getTypeUseAnnotations(variableDecl.vartype))) return true;
 		}
-		
+
 		return false;
 	}
 	
+	/** Whether a TYPE_USE-only annotation marks the value rather than an array element. */
+	public static boolean isTypeUseAnnotationOnValue(JavacNode node, JCAnnotation annotation) {
+		if (!(node.get() instanceof JCVariableDecl)) return true;
+		JCExpression type = ((JCVariableDecl) node.get()).vartype;
+		return !(removeTypeUseAnnotations(type) instanceof JCArrayTypeTree) || getTypeUseAnnotations(type).contains(annotation);
+	}
+
 	public static boolean hasNonNullAnnotations(JavacNode node, List<JCAnnotation> anns) {
 		if (anns == null) return false;
 		for (JCAnnotation ann : anns) {
@@ -1753,7 +1760,11 @@ public class JavacHandlerUtil {
 	public static boolean isNonNullAnnotation(JavacNode node, JCAnnotation annotation) {
 		String annotationTypeName = getTypeName(annotation.annotationType);
 		Boolean useForeignAnnotations = node.getAst().readConfiguration(ConfigurationKeys.NON_NULL_FOREIGN_ANNOTATIONS);
-		for (String nn : nonNullAnnotations(useForeignAnnotations)) if (typeMatches(nn, node, annotationTypeName)) return true;
+		for (String nn : nonNullAnnotations(useForeignAnnotations)) {
+			if (typeMatches(nn, node, annotationTypeName)) {
+				if (isTypeUseAnnotationOnValue(node, annotation) || !TYPE_USE_ONLY_ANNOTATIONS.contains(nn)) return true;
+			}
+		}
 		return false;
 	}
 
@@ -2091,6 +2102,7 @@ public class JavacHandlerUtil {
 	}
 	
 	public static List<JCAnnotation> getTypeUseAnnotations(JCExpression from) {
+		if (from instanceof JCTypeApply) return getTypeUseAnnotations(((JCTypeApply) from).clazz);
 		if (!JCAnnotatedTypeReflect.is(from)) return List.nil();
 		return JCAnnotatedTypeReflect.getAnnotations(from);
 	}
