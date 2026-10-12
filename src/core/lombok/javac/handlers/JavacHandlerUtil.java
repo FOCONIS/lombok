@@ -1721,7 +1721,6 @@ public class JavacHandlerUtil {
 			if (child.getKind() == Kind.ANNOTATION) {
 				JCAnnotation annotation = (JCAnnotation) child.get();
 				// Javac initially stores prefix type-use annotations among the declaration annotations.
-				if (isTypeUseOnlyNonNullAnnotation(node, annotation) && !isTypeUseAnnotationOnValue(node, annotation)) continue;
 				if (isNonNullAnnotation(node, annotation)) return true;
 			}
 		}
@@ -1736,12 +1735,6 @@ public class JavacHandlerUtil {
 	}
 	
 	/** Whether a TYPE_USE-only annotation marks the value rather than an array element. */
-	public static boolean isTypeUseOnlyNonNullAnnotation(JavacNode node, JCAnnotation annotation) {
-		String annotationTypeName = getTypeName(annotation.annotationType);
-		for (String nn : TYPE_USE_ONLY_ANNOTATIONS) if (typeMatches(nn, node, annotationTypeName)) return true;
-		return false;
-	}
-
 	public static boolean isTypeUseAnnotationOnValue(JavacNode node, JCAnnotation annotation) {
 		if (!(node.get() instanceof JCVariableDecl)) return true;
 		JCExpression type = ((JCVariableDecl) node.get()).vartype;
@@ -1750,10 +1743,7 @@ public class JavacHandlerUtil {
 
 	public static boolean hasNonNullAnnotations(JavacNode node, List<JCAnnotation> anns) {
 		if (anns == null) return false;
-		for (JCAnnotation ann : anns) {
-			if (isTypeUseOnlyNonNullAnnotation(node, ann) && !isTypeUseAnnotationOnValue(node, ann)) continue;
-			if (isNonNullAnnotation(node, ann)) return true;
-		}
+		for (JCAnnotation ann : anns) if (isNonNullAnnotation(node, ann)) return true;
 		
 		return false;
 	}
@@ -1770,7 +1760,11 @@ public class JavacHandlerUtil {
 	public static boolean isNonNullAnnotation(JavacNode node, JCAnnotation annotation) {
 		String annotationTypeName = getTypeName(annotation.annotationType);
 		Boolean useForeignAnnotations = node.getAst().readConfiguration(ConfigurationKeys.NON_NULL_FOREIGN_ANNOTATIONS);
-		for (String nn : nonNullAnnotations(useForeignAnnotations)) if (typeMatches(nn, node, annotationTypeName)) return true;
+		for (String nn : nonNullAnnotations(useForeignAnnotations)) {
+			if (typeMatches(nn, node, annotationTypeName)) {
+				if (isTypeUseAnnotationOnValue(node, annotation) || !TYPE_USE_ONLY_ANNOTATIONS.contains(nn)) return true;
+			}
+		}
 		return false;
 	}
 

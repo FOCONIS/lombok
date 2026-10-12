@@ -775,7 +775,6 @@ public class EclipseHandlerUtil {
 		for (EclipseNode child : node.down()) {
 			if (child.getKind() != Kind.ANNOTATION) continue;
 			Annotation annotation = (Annotation) child.get();
-			if (isTypeUseOnlyNonNullAnnotation(node, annotation) && !isTypeUseAnnotationOnValue(node, annotation)) continue;
 			if (isNonNullAnnotation(node, annotation)) return true;
 		}
 		if (node.get() instanceof AbstractVariableDeclaration) {
@@ -786,7 +785,7 @@ public class EclipseHandlerUtil {
 		}
 		return false;
 	}
-	
+
 	public static boolean isTypeUseOnlyNonNullAnnotation(EclipseNode node, Annotation annotation) {
 		for (String bn : TYPE_USE_ONLY_ANNOTATIONS) if (typeMatches(bn, node, annotation.type)) return true;
 		return false;
@@ -804,14 +803,7 @@ public class EclipseHandlerUtil {
 
 	public static boolean hasNonNullAnnotations(EclipseNode node, List<Annotation> anns) {
 		if (anns == null) return false;
-		for (Annotation annotation : anns) {
-			TypeReference typeRef = annotation.type;
-			if (typeRef != null && typeRef.getTypeName() != null) {
-				if (isTypeUseOnlyNonNullAnnotation(node, annotation) && !isTypeUseAnnotationOnValue(node, annotation)) continue;
-				Boolean useForeignAnnotations = node.getAst().readConfiguration(ConfigurationKeys.NON_NULL_FOREIGN_ANNOTATIONS);
-				for (String bn : nonNullAnnotations(useForeignAnnotations)) if (typeMatches(bn, node, typeRef)) return true;
-			}
-		}
+		for (Annotation annotation : anns) if (isNonNullAnnotation(node, annotation)) return true;
 		return false;
 	}
 	public static boolean hasCheckReturnValueImplicatingAnnotations(EclipseNode node, Annotation[] anns) {
@@ -827,7 +819,11 @@ public class EclipseHandlerUtil {
 	
 	public static boolean isNonNullAnnotation(EclipseNode node, Annotation annotation) {
 		Boolean useForeignAnnotations = node.getAst().readConfiguration(ConfigurationKeys.NON_NULL_FOREIGN_ANNOTATIONS);
-		for (String bn : nonNullAnnotations(useForeignAnnotations)) if (typeMatches(bn, node, annotation.type)) return true;
+		for (String bn : nonNullAnnotations(useForeignAnnotations)) {
+			if (typeMatches(bn, node, annotation.type)) {
+				if (isTypeUseAnnotationOnValue(node, annotation) || !TYPE_USE_ONLY_ANNOTATIONS.contains(bn)) return true;
+			}
+		}
 		return false;
 	}
 
