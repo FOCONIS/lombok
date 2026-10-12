@@ -786,11 +786,6 @@ public class EclipseHandlerUtil {
 		return false;
 	}
 
-	public static boolean isTypeUseOnlyNonNullAnnotation(EclipseNode node, Annotation annotation) {
-		for (String bn : TYPE_USE_ONLY_ANNOTATIONS) if (typeMatches(bn, node, annotation.type)) return true;
-		return false;
-	}
-
 	/** Whether a TYPE_USE-only annotation marks the value rather than an array element. */
 	public static boolean isTypeUseAnnotationOnValue(EclipseNode node, Annotation annotation) {
 		if (!(node.get() instanceof AbstractVariableDeclaration)) return true;

@@ -233,7 +233,7 @@ public class HandleNonNull extends EclipseAnnotationHandler<NonNull> {
 				node = annotationNode.up();
 			}
 			
-			if (isTypeUseAnnotationOnValue(node, ast) && node.getKind() == Kind.FIELD) {
+			if (node.getKind() == Kind.FIELD && isTypeUseAnnotationOnValue(node, ast)) {
 				//Check if this is a record and we need to generate the compact form constructor.
 				EclipseNode typeNode = node.up();
 				if (typeNode.getKind() == Kind.TYPE) {

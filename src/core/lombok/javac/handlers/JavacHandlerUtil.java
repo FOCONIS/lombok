@@ -1720,12 +1720,10 @@ public class JavacHandlerUtil {
 		for (JavacNode child : node.down()) {
 			if (child.getKind() == Kind.ANNOTATION) {
 				JCAnnotation annotation = (JCAnnotation) child.get();
-				// Javac initially stores prefix type-use annotations among the declaration annotations.
 				if (isNonNullAnnotation(node, annotation)) return true;
 			}
 		}
-		
-		// Only annotations on the outermost type apply to the value itself, not its elements or type arguments.
+
 		if (node.get() instanceof JCVariableDecl) {
 			JCVariableDecl variableDecl = (JCVariableDecl) node.get();
 			if (hasNonNullAnnotations(node, getTypeUseAnnotations(variableDecl.vartype))) return true;
@@ -1743,7 +1741,9 @@ public class JavacHandlerUtil {
 
 	public static boolean hasNonNullAnnotations(JavacNode node, List<JCAnnotation> anns) {
 		if (anns == null) return false;
-		for (JCAnnotation ann : anns) if (isNonNullAnnotation(node, ann)) return true;
+		for (JCAnnotation ann : anns) {
+			if (isNonNullAnnotation(node, ann)) return true;
+		}
 		
 		return false;
 	}
